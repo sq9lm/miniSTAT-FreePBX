@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid mt-3">
+
+<!-- -------- karty metryk -------- -->
+<div class="row text-center g-3">
+  {% for m in ['cpu','ram','disk','ext_online','ext_off','ext_busy','trunk_on','trunk_off'] %}
+  <div class="col-6 col-md-3">
+    <div class="card dashboard-card bg-metric">
+      <span class="metric-val" id="{{m}}Val">–</span>
+      <span class="metric-label">
+        {{ {'cpu':'CPU %','ram':'RAM %','disk':'Dysk %',
+            'ext_online':'Użytk. online','ext_off':'Użytk. offline',
+            'ext_busy':'Użytk. busy','trunk_on':'Trunki online',
+            'trunk_off':'Trunki offline'}[m] }}
+      </span>
+      <div class="progress mx-2" style="height:4px;display:none;" id="{{m}}Bar">
+        <div class="progress-bar"></div>
+      </div>
+    </div>
+  </div>
+    {% endfor %}
+</div>
+
+<!-- -------- uptime systemu -------- -->
+<div class="row mt-4">
+  <div class="col-md-4">
+    <div class="card dashboard-card uptime-box">
+      <div class="card-body">
+        <h6>Uptime systemu</h6>
+        <p id="uptimeSys">–</p>
+        <h6>Uptime Asteriska</h6>
+        <p id="uptimeAst">–</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- -------- wykres sieci -------- -->
+<div class="row mt-4">
+  <div class="col-md-8 mx-auto">
+    <div class="card net-box">
+      <div class="card-body">
+        <h6 class="mb-2">Ruch sieci (kB/s)</h6>
+        <canvas id="netChart" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- -------- wykres temperatury -------- -->
+<div class="row mt-4">
+  <div class="col-md-8 mx-auto">
+    <div class="card"><div class="card-body">
+      <h6 class="mb-2" id="tempTitle">Temperatura CPU (°C)</h6>
+      <canvas id="tempChart" height="120"></canvas>
+    </div></div>
+  </div>
+</div>
+
+
+</div>
+{% endblock %}
+
+{% block scripts %}  {# <‑‑ blok zdefiniowany w base.html tuż przed </body> #}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
+{% endblock %}

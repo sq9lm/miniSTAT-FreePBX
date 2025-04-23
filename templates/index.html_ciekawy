@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>miniSTAT centrali</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    {% include 'menu.html' %}
+
+    <div class="container mt-3">
+        <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="showOfflineCheckbox" />
+            <label class="form-check-label" for="showOfflineCheckbox">Pokaż wszystkich użytkowników offline</label>
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="filterInput">Filtruj po numerze wewnętrznym lub nazwie:</label>
+            <input type="text" class="form-control" id="filterInput" placeholder="Wprowadź numer lub nazwę" />
+        </div>
+
+        <div class="row row-cols-1 row-cols-md-4 g-3" id="extensions-cards">
+            </div>
+    </div>
+
+    <script>
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        }
+
+        function updateExtensionsStatus() {
+            fetch("/api/extensions")
+                .then(response => response.json())
+                .then(data => {
+                    const cardsContainer = document.getElementById("extensions-cards");
+                    cardsContainer.innerHTML = "";
+
+                    const showOffline = document.getElementById("showOfflineCheckbox").checked;
+                    const filterValue = document.getElementById("filterInput").value.trim().toLowerCase();
+
+                    data.forEach(extension => {
+                        if (extension.extension?.startsWith("<Endpoint")) return;
+                        if (!showOffline && extension.status === "Unavailable") return;
+                        if (filterValue && !(`${extension.extension} ${extension.name}`.toLowerCase().includes(filterValue))) return;
+
+                        const card = document.createElement("div");
+                        card.className = "col";
+                        card.innerHTML = `
+                            <a href="/endpoint/${extension.extension}" class="card-link">
+                                <div class="card card-status">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <strong>${extension.extension}</strong>
+                                            ${extension.name ? `<em>${extension.name}</em>` : ''}
+                                        </h5>
+                                        <p class="card-text">
+                                            Status: <span class="status-icon ${extension.status === 'Unavailable' ? 'unavailable' : (extension.status === 'In use' ? 'busy' : 'available')}">
+                                                ${extension.status === 'Unavailable' ? '❌ Offline' : (extension.status === 'In use' ? '📞 Zajęty' : '✅ Dostępny')}
+                                            </span>
+                                            ${extension.caller_id ? `<br>Rozmówca: ${extension.caller_id}` : ''}
+                                            ${extension.time ? `<br>Czas: ${extension.time}` : ''}
+                                            ${extension.contact_ip ? `<br>IP: ${extension.contact_ip}` : ''}
+                                            ${extension.avail_ms ? `<br>Avail ms: <span class="${parseFloat(extension.avail_ms.replace(" ms", "")) <= 35 ? 'avail-green' : (parseFloat(extension.avail_ms.replace(" ms", "")) <= 65 ? 'avail-orange' : 'avail-red')}">${extension.avail_ms}</span>` : ''}
+                                        </p>
+                                    </div>
+                                </div>
+                            </a>
+                        `;
+                        cardsContainer.appendChild(card);
+                    });
+                });
+        }
+
+        setInterval(updateExtensionsStatus, 1000);
+        updateExtensionsStatus();
+        document.getElementById("showOfflineCheckbox").addEventListener("change", updateExtensionsStatus);
+        document.getElementById("filterInput").addEventListener("input", updateExtensionsStatus);
+
+        // Dodajmy pierwszy kafelek "Status"
+        document.addEventListener('DOMContentLoaded', function() {
+            const cardsContainer = document.getElementById("extensions-cards");
+            const statusCard = document.createElement("div");
+            statusCard.className = "col";
+            statusCard.innerHTML = `
+                <div class="card card-status bg-primary text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Status</h5>
+                        <p class="card-text">Przejdź do strony statusu systemu.</p>
+                        <a href="/status" class="btn btn-light">Zobacz Status</a>
+                    </div>
+                </div>
+            `;
+            cardsContainer.prepend(statusCard); // Dodaj na początek
+        });
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <footer class="mt-5">
+        <div class="container text-center">
+            <p>Copyright by Łukasza Misiura | 2025</p>
+        </div>
+    </footer>
+
+</body>
+</html>

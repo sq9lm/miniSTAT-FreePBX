@@ -1,0 +1,14 @@
+[Unit]
+Description=miniSTAT Flask App
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/root/miniSTAT-FreePBX
+ExecStart=/root/miniSTAT-FreePBX/venv/bin/python /root/miniSTAT-FreePBX/app.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

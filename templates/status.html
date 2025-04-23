@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status użytkowników</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    {% include 'menu.html' %}
+    <div class="container mt-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1>Status użytkowników</h1>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        <div class="row text-center mb-4">
+            <div class="col">
+                <div class="card bg-success text-white card-status" id="onlineCard" onclick="filterStatus('online')">
+                    <div class="card-body">
+                        <h5 class="card-title">Online</h5>
+                        <p id="stat-online" class="card-text">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card bg-warning text-dark card-status" id="busyCard" onclick="filterStatus('busy')">
+                    <div class="card-body">
+                        <h5 class="card-title">Zajęci</h5>
+                        <p id="stat-busy" class="card-text">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card bg-secondary text-white card-status" id="offlineCard" onclick="filterStatus('offline')">
+                    <div class="card-body">
+                        <h5 class="card-title">Offline</h5>
+                        <p id="stat-offline" class="card-text">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <input type="text" id="searchInput" class="form-control" placeholder="Szukaj po numerze lub nazwie...">
+        </div>
+
+        <table class="table table-hover table-bordered">
+            <thead>
+                <tr>
+                    <th>Numer</th>
+                    <th>Status</th>
+                    <th>Numer rozmówcy</th>
+                    <th>Czas rozmowy</th>
+                    <th>IP:Port</th>
+                    <th>Avail ms</th>
+                </tr>
+            </thead>
+            <tbody id="statusTable"></tbody>
+        </table>
+
+        <canvas id="statusChart" height="100"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const tableBody = document.getElementById('statusTable');
+        const searchInput = document.getElementById('searchInput');
+
+        const chartCtx = document.getElementById('statusChart').getContext('2d');
+        const chartData = {
+            labels: [],
+            datasets: [{
+                label: 'Użytkownicy online',
+                data: [],
+                backgroundColor: 'rgba(75,192,192,0.4)',
+                borderColor: 'rgba(75,192,192,1)',
+                fill: true,
+                tension: 0.3
+            }]
+        };
+        const statusChart = new Chart(chartCtx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                scales: {
+                    x: { display: true },
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        let currentFilter = '';  // Przechowujemy obecny filtr
+
+        function filterStatus(status) {
+            currentFilter = status;  // Ustawiamy filtr na kliknięty status
+            // Podświetlenie aktywnego statusu
+            document.getElementById('onlineCard').classList.remove('active');
+            document.getElementById('busyCard').classList.remove('active');
+            document.getElementById('offlineCard').classList.remove('active');
+
+            if (status === 'online') {
+                document.getElementById('onlineCard').classList.add('active');
+            } else if (status === 'busy') {
+                document.getElementById('busyCard').classList.add('active');
+            } else if (status === 'offline') {
+                document.getElementById('offlineCard').classList.add('active');
+            }
+
+            // Przefiltruj dane na podstawie wybranego statusu
+            fetchData();
+        }
+
+        function updateChart(onlineCount) {
+            const now = new Date().toLocaleTimeString();
+            chartData.labels.push(now);
+            chartData.datasets[0].data.push(onlineCount);
+            if (chartData.labels.length > 10) {
+                chartData.labels.shift();
+                chartData.datasets[0].data.shift();
+            }
+            statusChart.update();
+        }
+
+        function updateStats(data) {
+            let online = 0, busy = 0, offline = 0;
+            data.forEach(ext => {
+                if (ext.status === 'Unavailable') offline++;
+                else if (ext.status === 'In use') busy++;
+                else online++;
+            });
+            document.getElementById('stat-online').textContent = online;
+            document.getElementById('stat-busy').textContent = busy;
+            document.getElementById('stat-offline').textContent = offline;
+            updateChart(online);
+        }
+
+        function updateTable(data) {
+            const filter = searchInput.value.toLowerCase();
+            tableBody.innerHTML = '';
+
+            // Filtrowanie na podstawie statusu
+            const filteredData = data.filter(ext => {
+                if (currentFilter === 'online' && ext.status !== 'Unavailable' && ext.status !== 'In use') return true;
+                if (currentFilter === 'busy' && ext.status === 'In use') return true;
+                if (currentFilter === 'offline' && ext.status === 'Unavailable') return true;
+                if (currentFilter === '') return true;  // Jeśli brak filtra, pokazujemy wszystkich
+                return false;
+            });
+
+            filteredData.forEach(ext => {
+                if (filter && !(`${ext.extension} ${ext.name || ''}`.toLowerCase().includes(filter))) return;
+                const row = document.createElement('tr');
+
+                const nameCell = document.createElement('td');
+                nameCell.innerHTML = `<strong>${ext.extension}</strong> <em>${ext.name || ''}</em>`;
+                row.appendChild(nameCell);
+
+                const statusCell = document.createElement('td');
+                const icon = ext.status === 'Unavailable' ? '❌' : (ext.status === 'In use' ? '📞' : '✅');
+                statusCell.innerHTML = icon;
+                row.appendChild(statusCell);
+
+                const callerIdCell = document.createElement('td');
+                callerIdCell.textContent = ext.caller_id || '-';
+                row.appendChild(callerIdCell);
+
+                const timeCell = document.createElement('td');
+                timeCell.textContent = ext.time || '-';
+                row.appendChild(timeCell);
+
+                const ipCell = document.createElement('td');
+                ipCell.textContent = ext.contact_ip || '-';
+                row.appendChild(ipCell);
+
+                const availCell = document.createElement('td');
+                if (ext.avail_ms) {
+                    const value = parseFloat(ext.avail_ms.replace(' ms', ''));
+                    availCell.textContent = ext.avail_ms;
+                    if (value <= 35) availCell.classList.add('avail-green');
+                    else if (value <= 65) availCell.classList.add('avail-orange');
+                    else availCell.classList.add('avail-red');
+                } else {
+                    availCell.textContent = '-';
+                }
+                row.appendChild(availCell);
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        function fetchData() {
+            fetch('/api/extensions')
+                .then(res => res.json())
+                .then(data => {
+                    updateStats(data);
+                    updateTable(data);
+                });
+        }
+
+        searchInput.addEventListener('input', fetchData);
+
+        setInterval(fetchData, 1000);
+        fetchData();  // Inicjalizowanie danych po załadowaniu strony
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <footer class="mt-5">
+        <div class="container text-center">
+            <p>Copyright by Łukasza Misiura | 2025</p>
+        </div>
+    </footer>
+
+</body>
+</html>

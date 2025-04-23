@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Logi Asteriska{% endblock %}
+
+{% block content %}
+<div class="container mt-3" style="max-width: 80%;">
+  <h3 class="mb-3">Podgląd logów Asteriska</h3>
+
+  <div class="row mb-3">
+    <div class="col-md-3">
+      <label for="logSelect">Wybierz plik loga:</label>
+      <select id="logSelect" class="form-control"></select>
+    </div>
+    <div class="col-md-2">
+      <label for="linesInput">Ilość linii:</label>
+      <input type="text" id="linesInput" class="form-control" value="300" placeholder="np. 250">
+    </div>
+    <div class="col-md-2">
+      <label for="refreshSelect">Odświeżanie: <small class="text-muted"></small></label>
+      <select id="refreshSelect" class="form-control">
+        <option value="0">off</option>
+        <option value="3">3s</option>
+        <option value="5" selected>5s</option>
+        <option value="10">10s</option>
+        <option value="20">20s</option>
+        <option value="30">30s</option>
+        <option value="50">50s</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label for="levelSelect">Poziom loga:</label>
+      <select id="levelSelect" class="form-control">
+        <option value="ALL">Wszystkie</option>
+        <option value="ERROR">Błędy</option>
+        <option value="WARNING">Ostrzeżenia</option>
+        <option value="INFO">Informacje</option>
+      </select>
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+      <button class="btn btn-outline-primary w-100" id="toggleFullscreen">
+        <i class="fas fa-expand"></i> Fullscreen
+      </button>
+    </div>
+  </div>
+
+  <div class="row mb-3">
+    <div class="col-md-9">
+      <label for="filterInput">Filtruj treść:</label>
+      <input type="text" id="filterInput" class="form-control" placeholder="Wpisz tekst do filtrowania">
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+      <button class="btn btn-outline-secondary w-100" id="downloadFiltered">
+        <i class="fas fa-download"></i> Pobierz
+      </button>
+    </div>
+  </div>
+
+  <div class="row mb-3">
+    <div class="col-md-12 d-flex justify-content-end">
+      <button class="btn btn-outline-info" onclick="manualRefresh()">
+        <i class="fas fa-sync-alt"></i> Odśwież
+      </button>
+    </div>
+  </div>
+
+  <iframe id="logIframe" title="Podgląd logów Asteriska" class="log-content" style="width: 100%; height: 600px; font-size: 9pt; border: 1px solid #ccc; background-color: #fff;" onload="highlightLogLines(this); highlightNewLines(this);"></iframe>
+</div>
+
+<script src="{{ url_for('static', filename='highlightLogs.js') }}"></script>
+<script>
+function highlightNewLines(iframe) {
+  const content = iframe.contentDocument || iframe.contentWindow.document;
+  if (!content) return;
+
+  const lines = content.body.querySelectorAll(".log-line");
+  lines.forEach(line => {
+    if (!line.classList.contains("seen")) {
+      line.classList.add("new-log-line");
+      line.classList.add("seen");
+      setTimeout(() => {
+        line.classList.remove("new-log-line");
+      }, 5000);
+    }
+  });
+}
+</script>
+{% endblock %}

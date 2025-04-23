@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Status użytkowników{% endblock %}
+
+{% block content %}
+<h3 class="mb-4">Statusy użytkowników</h3>
+
+<ul class="nav nav-tabs mb-3" id="statusTabs" role="tablist">
+  <li class="nav-item">
+    <a class="nav-link active" id="online-tab" data-toggle="tab" href="#online" role="tab">Online</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="busy-tab" data-toggle="tab" href="#busy" role="tab">Zajęci</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="offline-tab" data-toggle="tab" href="#offline" role="tab">Offline</a>
+  </li>
+</ul>
+
+<div class="tab-content" id="statusTabsContent">
+  <div class="tab-pane fade show active" id="online" role="tabpanel">
+    <table class="table table-bordered">
+      <thead class="thead-light">
+        <tr>
+          <th>Numer</th><th>Kontakt</th><th>Caller ID</th><th>Czas</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ext in online %}
+        <tr>
+          <td>{{ ext.extension }}</td>
+          <td>{{ ext.name }}</td>
+          <td>{{ ext.caller_id or '-' }}</td>
+          <td>{{ ext.time or '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="tab-pane fade" id="busy" role="tabpanel">
+    <table class="table table-bordered">
+      <thead class="thead-light">
+        <tr>
+          <th>Numer</th><th>Kontakt</th><th>Caller ID</th><th>Czas</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ext in busy %}
+        <tr>
+          <td>{{ ext.extension }}</td>
+          <td>{{ ext.name }}</td>
+          <td>{{ ext.caller_id or '-' }}</td>
+          <td>{{ ext.time or '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="tab-pane fade" id="offline" role="tabpanel">
+    <table class="table table-bordered">
+      <thead class="thead-light">
+        <tr>
+          <th>Numer</th><th>Kontakt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ext in offline %}
+        <tr>
+          <td>{{ ext.extension }}</td>
+          <td>{{ ext.name }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const triggerTabList = [].slice.call(document.querySelectorAll('#statusTabs a'));
+  triggerTabList.forEach(triggerEl => {
+    const tabTrigger = new bootstrap.Tab(triggerEl);
+    triggerEl.addEventListener('click', event => {
+      event.preventDefault();
+      tabTrigger.show();
+    });
+  });
+</script>
+{% endblock %}
